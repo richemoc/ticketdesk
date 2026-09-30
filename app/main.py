@@ -11,13 +11,14 @@ settings = get_settings()
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
-# VULNERABLE: wildcard origin combined with credentials (CWE-942).
+# CORS is driven by the configured allow-list; credentials are refused whenever
+# that list is empty or wildcarded, so a config change cannot recreate CWE-942.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Accept", "Authorization", "Content-Type"],
 )
 
 app.include_router(api_router, prefix="/api/v1")
