@@ -1,0 +1,49 @@
+"""Administrative endpoints.
+
+TRAINING FIXTURE: contains intentional vulnerabilities. Not production code.
+"""
+
+import os
+import traceback
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_db
+from app.models import Requester, Ticket
+
+router = APIRouter()
+
+
+@router.delete("/tickets/{ticket_id}")
+def purge_ticket(ticket_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+    # VULNERABLE: destructive admin action with no authentication or role check (CWE-862).
+    ticket = db.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    db.delete(ticket)
+    db.commit()
+    return {"status": "deleted", "ticket_id": str(ticket_id)}
+
+
+@router.get("/requesters")
+def dump_requesters(db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    # VULNERABLE: exposes every requester record to any caller (CWE-862).
+    rows = db.query(Requester).all()
+    return [{"id": r.id, "email": r.email, "display_name": r.display_name} for r in rows]
+
+
+@router.get("/debug")
+def debug_environment() -> dict[str, object]:
+    # VULNERABLE: leaks process environment and config to unauthenticated callers (CWE-489).
+    return {"env": dict(os.environ), "cwd": os.getcwd()}
+
+
+@router.get("/reindex")
+def reindex(db: Session = Depends(get_db)) -> dict[str, object]:
+    try:
+        count = db.query(Ticket).count()
+        return {"status": "ok", "indexed": count}
+    except Exception as exc:
+        # VULNERABLE: internal stack trace returned to the caller (CWE-209).
+        return {"status": "error", "detail": str(exc), "trace": traceback.format_exc()}
