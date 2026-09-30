@@ -2,18 +2,6 @@
 
 A FastAPI backend for support tickets, requesters, comments and attachments.
 
-> ## ⚠ SECURITY TRAINING FIXTURE — DO NOT DEPLOY
->
-> This repository contains **intentional, unpatched vulnerabilities**. It exists to
-> exercise the auto-remediation pipeline end to end: triage must find the planted
-> findings genuinely present at the cited lines, the fixer must repair them, and the
-> validation gates must prove the repair.
->
-> Every vulnerable sink is marked with a `# VULNERABLE:` comment naming its CWE.
-> Do not run this against a real network, and do not copy code out of
-> `app/api/v1/reports.py`, `attachments.py`, `integrations.py`, `admin.py` or
-> `app/core/security.py`.
-
 ## Local setup
 
 ```powershell
