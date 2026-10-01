@@ -11,8 +11,9 @@ settings = get_settings()
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
-# CORS is driven by the configured allow-list; credentials are refused whenever
-# that list is empty or wildcarded, so a config change cannot recreate CWE-942.
+# CORS is driven by the configured allow-list. Settings.cors_origins drops "*" and "null"
+# before they can reach the middleware, and credentials are granted only when the list is
+# non-empty and nothing was dropped, so no value of CORS_ALLOWED_ORIGINS recreates CWE-942.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
