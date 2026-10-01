@@ -3,14 +3,15 @@
 TRAINING FIXTURE: contains intentional vulnerabilities. Not production code.
 """
 
-import os
-import traceback
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models import Requester, Ticket
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -33,17 +34,13 @@ def dump_requesters(db: Session = Depends(get_db)) -> list[dict[str, object]]:
     return [{"id": r.id, "email": r.email, "display_name": r.display_name} for r in rows]
 
 
-@router.get("/debug")
-def debug_environment() -> dict[str, object]:
-    # VULNERABLE: leaks process environment and config to unauthenticated callers (CWE-489).
-    return {"env": dict(os.environ), "cwd": os.getcwd()}
-
-
 @router.get("/reindex")
 def reindex(db: Session = Depends(get_db)) -> dict[str, object]:
     try:
         count = db.query(Ticket).count()
         return {"status": "ok", "indexed": count}
-    except Exception as exc:
-        # VULNERABLE: internal stack trace returned to the caller (CWE-209).
-        return {"status": "error", "detail": str(exc), "trace": traceback.format_exc()}
+    except Exception:
+        # Log the failure with its traceback server-side only; the caller gets a
+        # generic message so internal details are never disclosed (CWE-209).
+        logger.exception("Reindex failed")
+        raise HTTPException(status_code=500, detail="Reindex failed") from None
